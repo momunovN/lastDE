@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Polessye Dairy • Авторизация</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 flex items-center justify-center min-h-screen">
+    <div class="bg-white w-full max-w-[440px] rounded-3xl p-8 shadow-2xl">
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold">Polessye Dairy</h1>
+            <p class="text-slate-500">Форма авторизации + Капча-пазл</p>
+        </div>
+
+        <form id="loginForm">
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="text-sm font-semibold">Логин</label>
+                    <input id="login" type="text" value="admin" class="w-full border rounded-2xl px-4 py-3">
+                </div>
+                <div>
+                    <label class="text-sm font-semibold">Пароль</label>
+                    <input id="password" type="password" value="admin123" class="w-full border rounded-2xl px-4 py-3">
+                </div>
+            </div>
+
+            <!-- КАПЧА С ТВОИМИ КАРТИНКАМИ -->
+            <div class="mb-6">
+                <label class="block text-sm font-semibold mb-2">Капча — Соберите пазл</label>
+                <p class="text-xs text-slate-500 mb-3">Перетащите 4 картинки в квадрат 2×2 в правильном порядке</p>
+
+                <!-- Исходные картинки -->
+                <div class="mb-4">
+                    <p class="text-xs font-medium mb-2">Фрагменты:</p>
+                    <div id="pieces" class="flex gap-3 justify-center flex-wrap"></div>
+                </div>
+
+                <!-- Целевая сетка 2×2 -->
+                <div>
+                    <p class="text-xs font-medium mb-2">Соберите здесь:</p>
+                    <div id="grid" class="grid grid-cols-2 gap-3 w-[200px] mx-auto"></div>
+                </div>
+
+                <div id="status" class="mt-3 text-center text-sm font-medium"></div>
+            </div>
+
+            <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-3.5 rounded-2xl">
+                Войти
+            </button>
+        </form>
+
+        <div id="message" class="mt-4 text-center text-sm hidden"></div>
+    </div>
+
+    <script>
+        let attempts = 0;
+        const MAX = 3;
+        let solved = false;
+        let placed = [null, null, null, null];
+
+        // === ТВОИ КАРТИНКИ ===
+        const imagePieces = [
+            { id: 1, src: "/images/1.png" },
+            { id: 2, src: "/images/2.png" },
+            { id: 3, src: "/images/3.png" },
+            { id: 4, src: "/images/4.png" }
+        ];
+
+        function initPuzzle() {
+            const piecesBox = document.getElementById('pieces');
+            const gridBox = document.getElementById('grid');
+            piecesBox.innerHTML = '';
+            gridBox.innerHTML = '';
+            placed = [null, null, null, null];
+            solved = false;
+
+            const shuffled = [...imagePieces].sort(() => Math.random() - 0.5);
+
+            shuffled.forEach(p => {
+                const img = document.createElement('img');
+                img.src = p.src;
+                img.className = `w-16 h-16 object-cover rounded-2xl cursor-grab border-2 border-white shadow`;
+                img.draggable = true;
+                img.dataset.id = p.id;
+                img.ondragstart = e => e.dataTransfer.setData('text', p.id);
+                piecesBox.appendChild(img);
+            });
+
+            for (let i = 0; i < 4; i++) {
+                const slot = document.createElement('div');
+                slot.className = `w-[88px] h-[88px] border-3 border-dashed border-slate-400 rounded-2xl flex items-center justify-center bg-slate-100 overflow-hidden`;
+                slot.dataset.index = i;
+
+                slot.ondragover = e => e.preventDefault();
+                slot.ondrop = e => {
+                    e.preventDefault();
+                    const id = parseInt(e.dataTransfer.getData('text'));
+                    placeImage(id, i, slot);
+                };
+                slot.onclick = () => { if (placed[i]) removeImage(i, slot); };
+
+                gridBox.appendChild(slot);
+            }
+            updateStatus();
+        }
+
+        function placeImage(id, index, slot) {
+            if (placed[index]) removeImage(index, slot);
+            const original = document.querySelector(`#pieces img[data-id="${id}"]`);
+            if (!original) return;
+
+            const newImg = document.createElement('img');
+            newImg.src = original.src;
+            newImg.className = `w-full h-full object-cover`;
+            newImg.dataset.id = id;
+
+            slot.innerHTML = '';
+            slot.appendChild(newImg);
+            slot.style.borderStyle = 'solid';
+            slot.style.borderColor = '#0ea5e9';
+
+            placed[index] = id;
+            original.style.display = 'none';
+            updateStatus();
+        }
+
+        function removeImage(index, slot) {
+            const id = placed[index];
+            const original = document.querySelector(`#pieces img[data-id="${id}"]`);
+            if (original) original.style.display = 'block';
+
+            slot.innerHTML = '';
+            slot.style.borderStyle = 'dashed';
+            slot.style.borderColor = '#64748b';
+            placed[index] = null;
+            updateStatus();
+        }
+
+        function updateStatus() {
+            const status = document.getElementById('status');
+            if (JSON.stringify(placed) === '[1,2,3,4]') {
+                solved = true;
+                status.innerHTML = '<span class="text-emerald-600 font-semibold">✓ Пазл собран правильно!</span>';
+            } else {
+                solved = false;
+                status.innerHTML = 'Перетащите картинки в правильном порядке';
+            }
+        }
+
+        document.getElementById('loginForm').onsubmit = function(e) {
+            e.preventDefault();
+            const login = document.getElementById('login').value.trim();
+            const pass = document.getElementById('password').value.trim();
+            const msg = document.getElementById('message');
+
+            if (!solved) {
+                msg.className = "mt-4 text-center text-sm text-red-600";
+                msg.innerText = "Сначала соберите пазл из картинок!";
+                msg.classList.remove('hidden');
+                return;
+            }
+
+            if ((login === "admin" && pass === "admin123") || (login === "user" && pass === "user123")) {
+                msg.className = "mt-4 text-center text-sm text-emerald-600";
+                msg.innerText = "Вы успешно авторизовались!";
+                msg.classList.remove('hidden');
+            } else {
+                attempts++;
+                msg.className = "mt-4 text-center text-sm text-red-600";
+                msg.innerText = `Неверный логин или пароль (${attempts}/${MAX})`;
+                if (attempts >= MAX) {
+                    msg.innerHTML = "<b>Вы заблокированы.</b> Обратитесь к администратору.";
+                    document.querySelectorAll('input,button').forEach(el => el.disabled = true);
+                }
+            }
+        };
+
+        window.onload = initPuzzle;
+    </script>
+</body>
+</html>

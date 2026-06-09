@@ -1,0 +1,12 @@
+SELECT 
+    o.number AS order_number,
+    o.date,
+    c.name AS customer,
+    ROUND(SUM(op.quantity * pm.norm * m.price), 2) AS full_material_cost
+FROM orders o
+JOIN customers c ON o.customer_id = c.id
+JOIN order_products op ON o.id = op.order_id
+JOIN product_materials pm ON op.product_id = pm.product_id
+JOIN materials m ON pm.material_id = m.id
+WHERE o.id = 1                    -- ← сюда подставляй ID заказа (красным в документе)
+GROUP BY o.id, o.number, o.date, c.name;

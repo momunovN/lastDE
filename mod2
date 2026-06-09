@@ -1,0 +1,58 @@
+CREATE TABLE customers (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    inn TEXT,
+    address TEXT,
+    phone TEXT,
+    is_salesman INTEGER DEFAULT 0,
+    is_buyer INTEGER DEFAULT 0
+);
+
+CREATE TABLE products (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code TEXT UNIQUE,
+    name TEXT NOT NULL UNIQUE,
+    unit TEXT DEFAULT 'pcs',
+    price REAL
+);
+
+CREATE TABLE materials (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code TEXT UNIQUE,
+    name TEXT NOT NULL UNIQUE,
+    unit TEXT DEFAULT 'kg',
+    price REAL
+);
+
+CREATE TABLE product_materials (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id INTEGER NOT NULL,
+    material_id INTEGER NOT NULL,
+    norm REAL NOT NULL,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    FOREIGN KEY (material_id) REFERENCES materials(id) ON DELETE CASCADE,
+    UNIQUE(product_id, material_id)
+);
+
+CREATE TABLE orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    number TEXT,
+    date TEXT,
+    customer_id TEXT,
+    executor_id TEXT,
+    created_by TEXT,
+    total REAL,
+    FOREIGN KEY (customer_id) REFERENCES customers(id),
+    FOREIGN KEY (executor_id) REFERENCES customers(id)
+);
+
+CREATE TABLE order_products (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    quantity REAL NOT NULL,
+    price REAL,
+    amount REAL,
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id)
+);

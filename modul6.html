@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Валидация данных клиента</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 p-8">
+    <div class="max-w-3xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">Проверка данных клиента</h1>
+
+        <!-- Кнопки -->
+        <div class="flex gap-4 mb-6">
+            <button onclick="getData()" 
+                    class="bg-blue-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-blue-700">
+                Получить данные
+            </button>
+            
+            <button onclick="validateAndSend()" 
+                    class="bg-emerald-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-emerald-700">
+                Отправить результат теста
+            </button>
+        </div>
+
+        <!-- Данные клиента -->
+        <div class="bg-white p-6 rounded-3xl shadow mb-6">
+            <h2 class="font-semibold mb-4">Данные клиента</h2>
+            <div id="clientData" class="space-y-2 text-sm">
+                <p><b>ФИО:</b> <span id="fullName">—</span></p>
+                <p><b>Телефон:</b> <span id="phone">—</span></p>
+                <p><b>Email:</b> <span id="email">—</span></p>
+            </div>
+        </div>
+
+        <!-- Результат валидации -->
+        <div class="bg-white p-6 rounded-3xl shadow">
+            <h2 class="font-semibold mb-4">Результат проверки</h2>
+            <div id="result" class="text-sm"></div>
+        </div>
+
+        <!-- Тест-кейс (для копирования в Word) -->
+        <div class="mt-8">
+            <h3 class="font-semibold mb-2">Тест-кейс (скопируй в ТестКейс.docx)</h3>
+            <table class="w-full border text-sm">
+                <thead class="bg-slate-200">
+                    <tr>
+                        <th class="border p-2">№</th>
+                        <th class="border p-2">Действие</th>
+                        <th class="border p-2">Ожидаемый результат</th>
+                        <th class="border p-2">Результат</th>
+                    </tr>
+                </thead>
+                <tbody id="testCaseTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let clientData = null;
+
+        // Получение данных с эмулятора
+        async function getData() {
+            try {
+                const res = await fetch('http://localhost:4444/TransferSimulator/fullName');
+                clientData = await res.json();
+
+                document.getElementById('fullName').innerText = clientData.fullName || '—';
+                document.getElementById('phone').innerText = clientData.phone || '—';
+                document.getElementById('email').innerText = clientData.email || '—';
+
+                document.getElementById('result').innerHTML = '';
+            } catch (e) {
+                alert('Не удалось подключиться к эмулятору. Убедись, что TransferSimulator запущен.');
+            }
+        }
+
+        // Валидация + формирование результата
+        function validateAndSend() {
+            if (!clientData) {
+                alert('Сначала нажми "Получить данные"');
+                return;
+            }
+
+            const name = clientData.fullName || '';
+            let errors = [];
+
+            // Критерий 1: Не должно быть цифр
+            if (/\d/.test(name)) {
+                errors.push('Содержит цифры');
+            }
+
+            // Критерий 2: Не должно быть спецсимволов
+            if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/.test(name)) {
+                errors.push('Содержит запрещённые символы');
+            }
+
+            const isValid = errors.length === 0;
+            const resultText = isValid ? 'Успешно' : 'Ошибка: ' + errors.join(', ');
+
+            // Вывод результата на форму
+            document.getElementById('result').innerHTML = `
+                <div class="${isValid ? 'text-green-600' : 'text-red-600'} font-semibold">
+                    ${resultText}
+                </div>
+            `;
+
+            // Формируем строку тест-кейса
+            addTestCaseRow(name, resultText, isValid);
+        }
+
+        function addTestCaseRow(fullName, result, isValid) {
+            const tbody = document.getElementById('testCaseTable');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="border p-2 text-center">1</td>
+                <td class="border p-2">Получить данные клиента и проверить ФИО на запрещённые символы</td>
+                <td class="border p-2">ФИО не должно содержать цифры и спецсимволы</td>
+                <td class="border p-2 ${isValid ? 'text-green-600' : 'text-red-600'} font-semibold">
+                    ${result} (ФИО: ${fullName})
+                </td>
+            `;
+            tbody.appendChild(row);
+        }
+    </script>
+</body>
+</html>

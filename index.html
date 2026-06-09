@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polessye Dairy - Authorization System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        .header-font { font-family: 'Poppins', system-ui, sans-serif; }
+        .puzzle-piece { transition: all 0.2s ease; cursor: pointer; }
+        .puzzle-piece.selected { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.3); }
+    </style>
+</head>
+<body class="bg-slate-100">
+
+<!-- ==================== LOGIN SCREEN ==================== -->
+<div id="login-screen" class="min-h-screen flex items-center justify-center p-6">
+    <div class="w-full max-w-md">
+        <div class="text-center mb-8">
+            <div class="flex justify-center mb-4">
+                <div class="w-16 h-16 bg-sky-500 rounded-2xl flex items-center justify-center">
+                    <i class="fas fa-industry text-white text-3xl"></i>
+                </div>
+            </div>
+            <h1 class="text-3xl font-bold text-slate-800 header-font">Polessye Dairy</h1>
+            <p class="text-slate-500">Authorization System</p>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-xl p-8 border border-slate-200">
+            <h2 class="text-2xl font-semibold mb-6 text-center">Sign in</h2>
+            
+            <div class="space-y-5">
+                <!-- Login -->
+                <div>
+                    <label class="block text-sm font-medium mb-1.5">Login</label>
+                    <input id="login-input" type="text" value="admin"
+                           class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:border-sky-500">
+                </div>
+
+                <!-- Password -->
+                <div>
+                    <label class="block text-sm font-medium mb-1.5">Password</label>
+                    <input id="password-input" type="password" value="admin123"
+                           class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:border-sky-500">
+                </div>
+
+                <!-- CAPTCHA PUZZLE -->
+                <div>
+                    <label class="block text-sm font-medium mb-2">Security Check — Assemble the puzzle</label>
+                    <div class="bg-slate-50 border rounded-2xl p-4">
+                        <p class="text-xs text-center text-slate-500 mb-3">Click two pieces to swap them</p>
+                        
+                        <div id="puzzle-container" class="grid grid-cols-4 gap-3 mb-4"></div>
+                        
+                        <div class="flex justify-center">
+                            <button onclick="checkPuzzle()" 
+                                    class="px-5 py-2 bg-white border text-sm rounded-2xl flex items-center gap-x-2">
+                                <i class="fas fa-check-double"></i>
+                                <span>Check Puzzle</span>
+                            </button>
+                        </div>
+                        <div id="puzzle-status" class="mt-3 text-center text-sm text-slate-500">
+                            Puzzle not solved yet
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="attemptLogin()" 
+                        class="w-full bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-x-2">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>Sign In</span>
+                </button>
+            </div>
+        </div>
+        
+        <p class="text-center text-xs text-slate-400 mt-6">Demo: admin/admin123 • user/user123</p>
+    </div>
+</div>
+
+<!-- ==================== ADMIN DASHBOARD ==================== -->
+<div id="admin-screen" class="hidden min-h-screen">
+    <div class="bg-gradient-to-r from-sky-500 to-sky-600 text-white">
+        <div class="max-w-7xl mx-auto px-8 py-5 flex justify-between items-center">
+            <div class="flex items-center gap-x-3">
+                <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-shield-halved"></i>
+                </div>
+                <div>
+                    <h1 class="font-semibold text-xl">Administrator Panel</h1>
+                    <p class="text-sky-100 text-sm">Polessye Dairy</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-x-4">
+                <div class="text-right">
+                    <div id="admin-name" class="font-medium"></div>
+                    <div class="text-xs text-sky-200">Administrator</div>
+                </div>
+                <button onclick="logout()" class="px-5 py-2 bg-white/20 hover:bg-white/30 rounded-2xl text-sm flex items-center gap-x-2">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-8 py-8">
+        <!-- Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-3xl border"><p class="text-sm text-slate-500">Total Users</p><p id="stat-total" class="text-4xl font-semibold">0</p></div>
+            <div class="bg-white p-6 rounded-3xl border"><p class="text-sm text-slate-500">Administrators</p><p id="stat-admins" class="text-4xl font-semibold">0</p></div>
+            <div class="bg-white p-6 rounded-3xl border"><p class="text-sm text-slate-500">Blocked</p><p id="stat-blocked" class="text-4xl font-semibold">0</p></div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="bg-white rounded-3xl shadow border overflow-hidden">
+            <div class="px-8 py-5 border-b flex justify-between items-center bg-slate-50">
+                <div>
+                    <h3 class="font-semibold text-xl">User Management</h3>
+                </div>
+                <button onclick="showAddUserModal()" 
+                        class="px-5 py-2.5 bg-sky-500 text-white text-sm font-semibold rounded-2xl flex items-center gap-x-2">
+                    <i class="fas fa-plus"></i> Add New User
+                </button>
+            </div>
+            
+            <table class="w-full">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-8 py-4 text-left text-sm font-semibold">Login</th>
+                        <th class="px-6 py-4 text-left text-sm font-semibold">Role</th>
+                        <th class="px-6 py-4 text-center text-sm font-semibold">Status</th>
+                        <th class="px-6 py-4 text-center text-sm font-semibold">Attempts</th>
+                        <th class="px-8 py-4 text-right text-sm font-semibold">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="users-table-body" class="divide-y text-sm"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== USER SCREEN ==================== -->
+<div id="user-screen" class="hidden min-h-screen flex items-center justify-center">
+    <div class="max-w-md w-full bg-white rounded-3xl shadow-xl p-10 text-center">
+        <div class="w-20 h-20 mx-auto bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6">
+            <i class="fas fa-check-circle text-5xl"></i>
+        </div>
+        <h2 class="text-3xl font-semibold mb-2">Welcome!</h2>
+        <p id="user-welcome-name" class="text-xl text-slate-600 mb-8"></p>
+        <button onclick="logout()" class="w-full py-3 bg-slate-800 text-white rounded-2xl font-medium">Logout</button>
+    </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div id="user-modal" onclick="if(event.target.id==='user-modal') hideUserModal()" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+    <div onclick="event.stopImmediatePropagation()" class="bg-white w-full max-w-md mx-4 rounded-3xl shadow-2xl">
+        <div class="px-7 py-5 border-b flex justify-between">
+            <h3 id="modal-title" class="font-semibold text-xl">Add New User</h3>
+            <button onclick="hideUserModal()"><i class="fas fa-times text-xl"></i></button>
+        </div>
+        <div class="p-7 space-y-4">
+            <div><label class="text-sm">Login</label><input id="modal-login" class="w-full border rounded-2xl px-4 py-3"></div>
+            <div><label class="text-sm">Password</label><input id="modal-password" class="w-full border rounded-2xl px-4 py-3"></div>
+            <div><label class="text-sm">Role</label>
+                <select id="modal-role" class="w-full border rounded-2xl px-4 py-3">
+                    <option value="User">User</option>
+                    <option value="Administrator">Administrator</option>
+                </select>
+            </div>
+        </div>
+        <div class="px-7 py-5 bg-slate-50 flex justify-end gap-x-3">
+            <button onclick="hideUserModal()" class="px-6 py-2.5 rounded-2xl">Cancel</button>
+            <button onclick="saveUser()" class="px-6 py-2.5 bg-sky-500 text-white rounded-2xl font-semibold">Save</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ==================== JS LOGIC ====================
+let users = JSON.parse(localStorage.getItem('polessye_users')) || [
+    { id: 1, login: "admin", password: "admin123", role: "Administrator", is_blocked: false, failed_attempts: 0 },
+    { id: 2, login: "user", password: "user123", role: "User", is_blocked: false, failed_attempts: 0 }
+];
+let currentUser = null;
+let puzzleSolved = false;
+let puzzlePieces = ["Piece A", "Piece B", "Piece C", "Piece D"];
+let selectedPiece = null;
+
+function saveUsers() { localStorage.setItem('polessye_users', JSON.stringify(users)); }
+
+// PUZZLE
+function initPuzzle() {
+    const container = document.getElementById('puzzle-container');
+    container.innerHTML = '';
+    puzzleSolved = false;
+    selectedPiece = null;
+    puzzlePieces = [...puzzlePieces].sort(() => Math.random() - 0.5);
+
+    puzzlePieces.forEach((text, i) => {
+        const el = document.createElement('div');
+        el.className = `puzzle-piece h-14 flex items-center justify-center bg-white border-2 border-slate-300 rounded-2xl text-sm font-semibold`;
+        el.innerHTML = `<div class="text-center"><i class="fas fa-puzzle-piece text-sky-400"></i><br><span>${text}</span></div>`;
+        el.onclick = () => selectPiece(i, el);
+        container.appendChild(el);
+    });
+}
+
+function selectPiece(index, el) {
+    const all = document.querySelectorAll('#puzzle-container > div');
+    if (selectedPiece === null) {
+        selectedPiece = index;
+        el.classList.add('selected', 'border-sky-500');
+    } else {
+        if (selectedPiece !== index) {
+            [puzzlePieces[selectedPiece], puzzlePieces[index]] = [puzzlePieces[index], puzzlePieces[selectedPiece]];
+            initPuzzle();
+        } else {
+            all[selectedPiece].classList.remove('selected', 'border-sky-500');
+        }
+        selectedPiece = null;
+    }
+}
+
+function checkPuzzle() {
+    const correct = ["Piece A","Piece B","Piece C","Piece D"];
+    const status = document.getElementById('puzzle-status');
+    if (JSON.stringify(puzzlePieces) === JSON.stringify(correct)) {
+        puzzleSolved = true;
+        status.innerHTML = `<span class="text-emerald-600 font-semibold">✓ Puzzle solved!</span>`;
+    } else {
+        puzzleSolved = false;
+        status.innerHTML = `<span class="text-red-500">✗ Wrong order</span>`;
+    }
+}
+
+// LOGIN
+function attemptLogin() {
+    const login = document.getElementById('login-input').value.trim();
+    const pass = document.getElementById('password-input').value.trim();
+
+    if (!login || !pass) return alert("Login and password are required");
+    if (!puzzleSolved) return alert("Please solve the puzzle first");
+
+    const user = users.find(u => u.login === login);
+    if (!user) return alert("Incorrect login or password");
+
+    if (user.is_blocked) return alert("You are blocked. Contact administrator.");
+
+    if (user.password !== pass) {
+        user.failed_attempts = (user.failed_attempts || 0) + 1;
+        if (user.failed_attempts >= 3) {
+            user.is_blocked = true;
+            alert("Account blocked after 3 failed attempts");
+        } else {
+            alert(`Wrong password. Attempts left: ${3 - user.failed_attempts}`);
+        }
+        saveUsers();
+        return;
+    }
+
+    user.failed_attempts = 0;
+    saveUsers();
+    currentUser = user;
+    alert("You have successfully logged in!");
+
+    if (user.role === "Administrator") showAdminScreen();
+    else showUserScreen();
+}
+
+// SCREENS
+function showAdminScreen() {
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('user-screen').classList.add('hidden');
+    document.getElementById('admin-screen').classList.remove('hidden');
+    document.getElementById('admin-name').innerText = currentUser.login;
+    renderUsersTable();
+}
+
+function showUserScreen() {
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('admin-screen').classList.add('hidden');
+    document.getElementById('user-screen').classList.remove('hidden');
+    document.getElementById('user-welcome-name').innerText = `Hello, ${currentUser.login}!`;
+}
+
+function logout() {
+    currentUser = null;
+    puzzleSolved = false;
+    document.getElementById('admin-screen').classList.add('hidden');
+    document.getElementById('user-screen').classList.add('hidden');
+    document.getElementById('login-screen').classList.remove('hidden');
+    initPuzzle();
+}
+
+// ADMIN FUNCTIONS
+function renderUsersTable() {
+    const tbody = document.getElementById('users-table-body');
+    tbody.innerHTML = '';
+    users.forEach(u => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td class="px-8 py-4 font-medium">${u.login}</td>
+            <td class="px-6 py-4"><span class="px-3 py-1 text-xs rounded-full ${u.role === 'Administrator' ? 'bg-violet-100 text-violet-700' : 'bg-slate-100'}">${u.role}</span></td>
+            <td class="px-6 py-4 text-center">${u.is_blocked ? 
+                '<span class="px-3 py-1 text-xs bg-red-100 text-red-700 rounded-full">Blocked</span>' : 
+                '<span class="px-3 py-1 text-xs bg-emerald-100 text-emerald-700 rounded-full">Active</span>'}</td>
+            <td class="px-6 py-4 text-center">${u.failed_attempts || 0}</td>
+            <td class="px-8 py-4 text-right">
+                ${u.is_blocked ? `<button onclick="unblockUser(${u.id})" class="text-emerald-600 text-xs px-3 py-1">Unblock</button>` : ''}
+                <button onclick="editUser(${u.id})" class="text-xs px-3 py-1">Edit</button>
+                <button onclick="deleteUser(${u.id})" class="text-xs px-3 py-1 text-red-600">Delete</button>
+            </td>`;
+        tbody.appendChild(row);
+    });
+}
+
+function showAddUserModal() {
+    // ... (модалка для добавления)
+    alert("Add user modal would open here (full version available if needed)");
+    // Для простоты можно добавить через prompt
+    const login = prompt("Login:");
+    if (!login) return;
+    const pass = prompt("Password:");
+    const role = prompt("Role (User/Administrator):", "User");
+    if (users.find(u => u.login === login)) { alert("User exists"); return; }
+    users.push({id: Date.now(), login, password: pass, role, is_blocked: false, failed_attempts: 0});
+    saveUsers();
+    renderUsersTable();
+}
+
+function editUser(id) { /* аналогично */ alert("Edit user (можно доработать)"); }
+function deleteUser(id) {
+    if (confirm("Delete user?")) {
+        users = users.filter(u => u.id !== id);
+        saveUsers();
+        renderUsersTable();
+    }
+}
+function unblockUser(id) {
+    const u = users.find(x => x.id === id);
+    if (u) { u.is_blocked = false; u.failed_attempts = 0; saveUsers(); renderUsersTable(); }
+}
+
+// INIT
+function init() {
+    setTimeout(initPuzzle, 100);
+    // Можно добавить Enter на пароль
+}
+window.onload = init;
+</script>
+</body>
+</html>
