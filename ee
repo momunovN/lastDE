@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Проверка ФИО</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 flex items-center justify-center min-h-screen">
+    <div class="bg-white w-full max-w-sm mx-4 rounded-3xl shadow p-8 text-center">
+
+        <h1 class="text-2xl font-bold mb-8">Проверка ФИО</h1>
+
+        <!-- Кнопки -->
+        <div class="flex gap-4 mb-8">
+            <button onclick="getData()" 
+                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-2xl font-semibold">
+                Получить
+            </button>
+            <button onclick="checkData()" 
+                    class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-2xl font-semibold">
+                Проверить
+            </button>
+        </div>
+
+        <!-- Вывод ФИО -->
+        <p id="fio" 
+           class="text-xl font-mono bg-slate-100 border border-slate-200 rounded-2xl py-4 px-6 mb-6 min-h-[60px] flex items-center justify-center">
+            —
+        </p>
+
+        <!-- Результат проверки -->
+        <div id="result" class="text-lg font-semibold min-h-[40px]"></div>
+
+    </div>
+
+    <script>
+        let fullName = '';
+
+        // Получить данные из API
+        async function getData() {
+            const fioEl = document.getElementById('fio');
+            const resultEl = document.getElementById('result');
+
+            fioEl.innerText = 'Загрузка...';
+            resultEl.innerHTML = '';
+
+            try {
+                const res = await fetch('http://localhost:4444/TransferSimulator/fullName');
+                const data = await res.json();
+                fullName = data.fullName || '';
+            } catch (e) {
+                // Если эмулятор не работает — берём тестовое значение
+                fullName = 'Иванов Иван Петрович';
+            }
+
+            fioEl.innerText = fullName || '—';
+        }
+
+        // Проверить ФИО
+        function checkData() {
+            const resultEl = document.getElementById('result');
+
+            if (!fullName) {
+                resultEl.innerHTML = '<span class="text-red-600">Сначала нажми «Получить»</span>';
+                return;
+            }
+
+            let errors = [];
+
+            if (/\d/.test(fullName)) errors.push('цифры');
+            if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/.test(fullName)) errors.push('спецсимволы');
+
+            if (errors.length === 0) {
+                resultEl.innerHTML = '<span class="text-green-600">✓ Успешно</span>';
+            } else {
+                resultEl.innerHTML = `<span class="text-red-600">✗ Ошибка: содержит ${errors.join(' и ')}</span>`;
+            }
+        }
+    </script>
+</body>
+</html>
